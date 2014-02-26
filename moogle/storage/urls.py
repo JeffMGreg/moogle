@@ -7,6 +7,5 @@ url_bases = [
 ]
 
 url_paths = {
-    '{0}/b?.+': GCSResponseInstance.bucket_response,
-  #  '/(?P<bucket_name>.+)/o/(?P<key_name>.+)/$': GCSResponseInstance.key_response,
+    '{0}/b.*': GCSResponseInstance.bucket_response
 }

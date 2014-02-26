@@ -1,29 +1,9 @@
 import hashlib
 
 from moogle.core import BaseBackend
+from moogle.storage.errors import *
 
 from time import strftime, localtime
-
-
-class BucketAlreadyExists(Exception):
-    def __init__(self):
-        super(BucketAlreadyExists, self).__init__()
-
-    @property
-    def response(self):
-        return {
-            "error": {
-                "errors": [
-                    {
-                        "domain": "global",
-                        "reason": "conflict",
-                        "message": "You already own this bucket. Please select another name."
-                    }
-                ],
-                "code": 409,
-                "message": "You already own this bucket. Please select another name."
-            }
-        }
 
 
 class Project(object):
@@ -44,6 +24,34 @@ class Project(object):
             self.buckets[name] = bucket
             return bucket
 
+    def delete_bucket(self, name):
+
+        bucket = self.buckets.get(name, False)
+        if not bucket:
+            raise BucketNotFound
+
+        if len(bucket) != 0:
+            raise BucketNotEmpry
+
+        elif (len(bucket) == 0) and (name in self.buckets):
+            self.buckets.pop[name]
+            return None
+
+        else:
+            raise BucketNotFound
+
+    def list_buckets(self):
+
+        return self.buckets.values()
+
+    def get_bucket(self, name):
+
+        bucket = self.buckets.get(name)
+        if bucket:
+            return bucket
+        else:
+            raise BucketNotFound
+
 
 class Bucket(object):
     def __init__(self, project, name):
@@ -60,16 +68,31 @@ class Bucket(object):
         self.storageClass = "STANDARD"
         self.etag = "CAE="
 
+        self.visible_fields = map(lambda x: "show_%s" % x, self.__dict__.keys())
+
     def __iter__(self):
         return self.__dict__
 
 
 class GoogleCloudStorageBackend(BaseBackend):
     def __init__(self):
-        self.projects = {}
+        self.projects = {"mock_project": Project("mock_project")}
 
-    def post_bucket(self, bucket_name, project=None):
-        project = self.projects.setdefault(project, Project("mock_project"))
+    def post_bucket(self, bucket_name, project="mock_project"):
+        project = self.projects.setdefault(project, Project(project))
         return project.create_bucket(bucket_name)
+
+    def get_bucket(self, bucket_name, project="mock_project"):
+        project = self.projects[project]
+        return project.get_bucket(bucket_name)
+
+    def list_buckets(self, project="mock_project"):
+        project = self.projects[project]
+        return project.list_buckets()
+
+    def delete_bucket(self, bucket_name, project="mock_project"):
+        project = self.projects[project]
+        return project.delete_bucket(bucket_name)
+
 
 gcs_backend = GoogleCloudStorageBackend()
