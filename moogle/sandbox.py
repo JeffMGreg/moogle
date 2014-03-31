@@ -15,16 +15,29 @@ email = "moogle@google.com"
 scope = "https://www.googleapis.com/auth/devstorage.full_control"
 
 
-f = file("/home/jeff/gcs-dev.p12", "rb")
+f = file("/home/jeff/Git/gcs_dev/key.p12", "rb")
 key = f.read()
 f.close()
 
 credentials = SignedJwtAssertionCredentials(email, key, scope=scope)
-http = httplib2.Http()
-http = credentials.authorize(http)
-service = build("storage", "v1beta2", http=http)
+service = build("storage", "v1beta2", http=credentials.authorize(httplib2.Http()))
 
 # res = service.buckets().delete(bucket="test").execute()
 # res = service.buckets().list(project="mock_project").execute()
-res1 = service.buckets().insert(project="mock_project", body={"name": "test"}).execute()
-res2 = service.buckets().get(bucket="test", fields="id").execute()
+res1 = service.buckets().insert(project="mock_project", body={"name": "test"})
+foo = res1.execute()
+
+#=====
+import io
+from apiclient import http
+
+key = http.MediaIoBaseUpload(io.BytesIO("this is a test"), 'text/plain')
+bucket = "test"
+
+# bucket=self.bucket, name=key, media_body=media
+res2 = service.objects().insert(bucket=bucket, name="test_key_name", media_body=key)
+foo = res2.execute()
+
+res3 = service.objects().get(bucket=bucket, object="test_key_name")
+res3.execute()
+
