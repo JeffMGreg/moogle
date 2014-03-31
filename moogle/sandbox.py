@@ -25,6 +25,7 @@ service = build("storage", "v1beta2", http=credentials.authorize(httplib2.Http()
 # res = service.buckets().delete(bucket="test").execute()
 # res = service.buckets().list(project="mock_project").execute()
 res1 = service.buckets().insert(project="mock_project", body={"name": "test"})
+print res1.uri
 foo = res1.execute()
 
 #=====
@@ -36,8 +37,13 @@ bucket = "test"
 
 # bucket=self.bucket, name=key, media_body=media
 res2 = service.objects().insert(bucket=bucket, name="test_key_name", media_body=key)
-foo = res2.execute()
+print res2.uri
+res2.execute()
 
 res3 = service.objects().get(bucket=bucket, object="test_key_name")
+print res3.uri
 res3.execute()
 
+res4 = service.objects().get(bucket="foobar", object="test_key_name")
+print res4.uri
+res4.execute()

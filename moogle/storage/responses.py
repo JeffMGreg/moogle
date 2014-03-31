@@ -8,6 +8,19 @@ from jinja2 import Template
 from .models import gcs_backend
 from .errors import *
 
+class Response(object):
+
+    def __init__(self, backend):
+        self.backend = backend
+
+    def response(self, request, full_url, headers):
+        if (request.path.find("/o?") > -1 or request.path.find("/o/") > -1):
+            return ObjectResponse.object_response(request, full_url, headers)
+        else:
+            return BucketResponse.bucket_response(request, full_url, headers)
+
+
+
 class ObjectResponse(object):
     def __init__(self, backend):
         self.backend = backend
@@ -60,7 +73,7 @@ class BucketResponse(object):
             return self._post(request, bucket_name = json.loads(request.body)["name"])
 
         elif request.method in ["PATCH", "PUT", "DELETE", "GET"]:
-            raise NotImplemented
+            raise Exception("%s is not implemented for %s" % (request.method, request.path))
 
         else:
             raise ValueError
@@ -80,7 +93,7 @@ class BucketResponse(object):
         response = Template(BUCKET_INSERT_RESPONSE)
         return json.dumps(response.render(bucket=bucket))
 
-
+BaseResponse = Response(gcs_backend)
 BucketResponse = BucketResponse(gcs_backend)
 ObjectResponse = ObjectResponse(gcs_backend)
 

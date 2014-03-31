@@ -34,6 +34,7 @@ class MockGoogle(object):
 
         for method in HTTPretty.METHODS:
             for key, value in self.backend.urls.iteritems():
+                print key
                 HTTPretty.register_uri(
                     method=method,
                     uri=re.compile(key),
