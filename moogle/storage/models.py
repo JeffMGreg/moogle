@@ -10,14 +10,11 @@ from time import strftime, localtime
 class Project(object):
     def __init__(self, name):
         self.name = name
-
         owner_hash = hashlib.sha256(name)
         self.owners = owner_hash.hexdigest()
-
         self.buckets = {}
 
     def create_bucket(self, name):
-
         if name in self.buckets:
             raise BucketAlreadyExists
         else:
@@ -25,28 +22,7 @@ class Project(object):
             self.buckets[name] = bucket
             return bucket
 
-    def delete_bucket(self, name):
-
-        bucket = self.buckets.get(name, False)
-        if not bucket:
-            raise BucketNotFound
-
-        if len(bucket) != 0:
-            raise BucketNotEmpry
-
-        elif (len(bucket) == 0) and (name in self.buckets):
-            self.buckets.pop[name]
-            return None
-
-        else:
-            raise BucketNotFound
-
-    def list_buckets(self):
-
-        return self.buckets.values()
-
     def get_bucket(self, name):
-
         bucket = self.buckets.get(name)
         if bucket:
             return bucket
@@ -91,19 +67,18 @@ class Bucket(object):
 
 class Object(object):
     def __init__(self, project, bucket, name, media):
-        self.project = project
-        self.bucket = bucket.id
-        self.name = name
-
         self.owner = {
             "entity": bucket.owner["entity"],
             "entityId": bucket.owner["entityId"]
         }
-
+        
+        self.name = name
         self.size = len(media)
         self.media = media
-
+        self.bucket = bucket.id
+        self.project = project
         self.generation = random.randint(1000000000000000, 9999999999999999)
+        self.timeCreated = strftime("%Y-%m-%dT%H:%M:%S.000Z", localtime())
 
 
 class GoogleCloudStorageBackend(BaseBackend):
