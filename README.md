@@ -1,7 +1,9 @@
 moogle
 ======
 
-Mock + Google = moogle,  a mock of google cloud services.  More specifically it's a mock of google cloud storage and more specifically than that it just creates buckets and objects and gets objects.  This project is based on https://github.com/spulec/moto
+Mock + Google = moogle,  a mock of google cloud services.  More specifically it's a mock of google cloud storage and more specifically than that it just creates buckets and objects and gets objects without ever leaving the comfort of your localhost.  This project is based on https://github.com/spulec/moto
+
+I hope to some day merge this with moto but until more functionality is added (and tests) it's going to sit here.
 
 Here's an example:
 
