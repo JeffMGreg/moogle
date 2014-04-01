@@ -8,6 +8,8 @@ from jinja2 import Template
 from .models import gcs_backend
 from .errors import *
 
+BASE_RE = re.compile("(?:/upload)?/storage/v1beta2/b/?(?P<bucket>[0-9a-zA-Z_-]+)?(?:/o/?(?P<object>[0-9a-zA-Z_-]+)?)?\?.+")
+
 class Response(object):
 
     def __init__(self, backend):
@@ -15,47 +17,52 @@ class Response(object):
 
     def response(self, request, full_url, headers):
         try:
-            # re.match("/b/?(?P<bucket>[0-9a-zA-Z]+)(?:/o/(?P<object>[0-9a-zA-Z]+))?(?:/acl/?(?P<acl>.+))?", "/b/bucket").groupdict()
-            if (request.path.find("/o?") > -1 or request.path.find("/o/") > -1):
-                key = ObjectResponse.object_response(request, full_url, headers)
+            groups = BASE_RE.match(request.path).groupdict()
+            bucket = groups["bucket"]
+            object = groups["object"]
+
+            if object or request.path.split("?")[0][-2:] == "/o":
+                key = gcs_object.response(request, headers, bucket)
                 if isinstance(key, ObjectNotFound):
                     return key.response
                 else:
                     return key
             else:
-                bucket = BucketResponse.bucket_response(request, full_url, headers)
+                bucket = gcs_bucket.response(request, headers)
                 return bucket
         except Exception, e:
-            return 404, headers, e.response
+            try:
+                if not e.__module__.startswith("moogle"):
+                    raise e
+                return 404, headers, e.response
+            except:
+                raise e
 
-class ObjectResponse(object):
+
+class Object(object):
     def __init__(self, backend):
         self.backend = backend
 
-    def object_response(self, request, full_url, headers):
-        response = self._object_response(request, full_url)
+    def response(self, request, headers, bucket):
+        if request.method == "POST":
+            response = self._post(request, bucket=bucket)
+        if request.method == "GET":
+            response = self._get(request, bucket=bucket)
+
         if isinstance(response, basestring):
             return 200, headers, response
         else:
             status_code, headers, response_content = response
             return status_code, headers, response_content
 
-    def _object_response(self, request, full_url):
-        if request.method == "POST":
-            bucket_name = request.path[request.path.find("/b/")+3:request.path.find("/o?")]
-            return self._post(request, bucket_name=bucket_name)
-        if request.method == "GET":
-            bucket_name = request.path[request.path.find("/b/")+3:request.path.find("/o/")]
-            return self._get(request, bucket_name=bucket_name)
-
-    def _post(self, request, bucket_name):
-        key = self.backend.post_object(bucket_name, request.querystring["name"][0], request.body)
+    def _post(self, request, bucket):
+        key = self.backend.post_object(bucket, request.querystring["name"][0], request.body)
         response = Template(OBJECT_INSERT_RESPONSE)
         return json.dumps(response.render(key=key))
 
-    def _get(self, request, bucket_name):
+    def _get(self, request, bucket):
         object_name = request.path[request.path.find("/o/") + 3: request.path.find("?")]
-        key = self.backend.get_object(bucket_name, object_name)
+        key = self.backend.get_object(bucket, object_name)
         if "json" in request.querystring["alt"]:
             response = Template(OBJECT_GET_RESPONSE)
             return json.dumps(response.render(key=key))
@@ -63,28 +70,25 @@ class ObjectResponse(object):
             return key.media
 
 
-class BucketResponse(object):
+class Bucket(object):
     def __init__(self, backend):
         self.backend = backend
 
-    def bucket_response(self, request, full_url, headers):
-        response = self._bucket_response(request, full_url)
+    def response(self, request, headers):
+
+        if request.method == "POST":
+            bucket = json.loads(request.body)["name"]
+            response = self._post(request, bucket_name=bucket)
+        elif request.method in ["PATCH", "PUT", "DELETE", "GET"]:
+            raise Exception("%s is not implemented for %s" % (request.method, request.path))
+        else:
+            raise ValueError
+
         if isinstance(response, basestring):
             return 200, headers, response
         else:
             status_code, headers, response_content = response
             return status_code, headers, response_content
-
-    def _bucket_response(self, request, full_url):
-        if request.method == "POST":
-            return self._post(request, bucket_name = json.loads(request.body)["name"])
-
-        elif request.method in ["PATCH", "PUT", "DELETE", "GET"]:
-            raise Exception("%s is not implemented for %s" % (request.method, request.path))
-
-        else:
-            raise ValueError
-
 
     def _post(self, request, bucket_name):
         try:
@@ -101,8 +105,8 @@ class BucketResponse(object):
         return json.dumps(response.render(bucket=bucket))
 
 BaseResponse = Response(gcs_backend)
-BucketResponse = BucketResponse(gcs_backend)
-ObjectResponse = ObjectResponse(gcs_backend)
+gcs_bucket = Bucket(gcs_backend)
+gcs_object = Object(gcs_backend)
 
 OBJECT_GET_RESPONSE = '''{
  "kind": "storage#object",
