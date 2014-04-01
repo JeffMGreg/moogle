@@ -24,7 +24,6 @@ foo = res1.execute()
 #=====
 import io
 from apiclient import http
-
 key = http.MediaIoBaseUpload(io.BytesIO("this is a test"), 'text/plain')
 bucket = "test"
 
