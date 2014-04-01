@@ -44,9 +44,21 @@ res3 = service.objects().get(bucket=bucket, object="test_key_name")
 print res3.uri
 res3.execute()
 
-# res4 = service.objects().get(bucket="foobar", object="test_key_name")
-# print res4.uri
-# res4.execute()
+res4 = service.objects().get(bucket="foobar", object="test_key_name")
+print res4.uri
+try:
+    res4.execute()
+except:
+    print 404
+
 
 res5 = service.objects().get(bucket=bucket, object="foobar")
-res5.execute()
+print res5.uri
+try:
+    res5.execute()
+except:
+    print 404
+
+
+for x in xrange(10):
+    service.objects().insert(bucket=bucket, name=str(x), media_body=key).execute()

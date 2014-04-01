@@ -122,4 +122,11 @@ class GoogleCloudStorageBackend(BaseBackend):
         bucket = self.projects[project].get_bucket(bucket_name)
         return bucket.get_object(object)
 
+    def _list_buckets(self, project="mock_project"):
+        return self.projects[project].buckets
+
+    def _list_objects(self, bucket_name, project="mock_project"):
+        return self.projects[project].get_bucket(bucket_name).objects
+
+
 gcs_backend = GoogleCloudStorageBackend()
