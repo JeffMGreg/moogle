@@ -15,6 +15,7 @@ class Response(object):
 
     def response(self, request, full_url, headers):
         try:
+            # re.match("/b/?(?P<bucket>[0-9a-zA-Z]+)(?:/o/(?P<object>[0-9a-zA-Z]+))?(?:/acl/?(?P<acl>.+))?", "/b/bucket").groupdict()
             if (request.path.find("/o?") > -1 or request.path.find("/o/") > -1):
                 key = ObjectResponse.object_response(request, full_url, headers)
                 if isinstance(key, ObjectNotFound):
