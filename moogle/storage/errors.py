@@ -50,3 +50,21 @@ class BucketNotFound(Exception):
             "code": 404,
             "message": "Not Found"
         }))
+
+class ObjectNotFound(Exception):
+
+    @property
+    def response(self):
+        return json.dumps(dict(error={
+            "error": {
+                "errors": [
+                    {
+                        "domain": "global",
+                        "reason": "notFound",
+                        "message": "Not Found"
+                    }
+                ],
+                "code": 404,
+                "message": "Not Found"
+            }
+        }))

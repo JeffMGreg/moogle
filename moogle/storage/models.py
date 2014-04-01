@@ -83,7 +83,10 @@ class Bucket(object):
         return obj
 
     def get_object(self, object_name):
-        return self.objects[object_name]
+        try:
+            return self.objects[object_name]
+        except KeyError:
+            raise ObjectNotFound
 
 
 class Object(object):
@@ -116,7 +119,7 @@ class GoogleCloudStorageBackend(BaseBackend):
         return bucket.create_object(key_name, media_body)
 
     def get_object(self, bucket_name, object, project="mock_project"):
-        bucket = self.projects[project].buckets[bucket_name]
+        bucket = self.projects[project].get_bucket(bucket_name)
         return bucket.get_object(object)
 
 gcs_backend = GoogleCloudStorageBackend()

@@ -14,12 +14,18 @@ class Response(object):
         self.backend = backend
 
     def response(self, request, full_url, headers):
-        if (request.path.find("/o?") > -1 or request.path.find("/o/") > -1):
-            return ObjectResponse.object_response(request, full_url, headers)
-        else:
-            return BucketResponse.bucket_response(request, full_url, headers)
-
-
+        try:
+            if (request.path.find("/o?") > -1 or request.path.find("/o/") > -1):
+                key = ObjectResponse.object_response(request, full_url, headers)
+                if isinstance(key, ObjectNotFound):
+                    return key.response
+                else:
+                    return key
+            else:
+                bucket = BucketResponse.bucket_response(request, full_url, headers)
+                return bucket
+        except Exception, e:
+            return 404, headers, e.response
 
 class ObjectResponse(object):
     def __init__(self, backend):
