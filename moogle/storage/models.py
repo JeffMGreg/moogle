@@ -15,12 +15,9 @@ class Project(object):
         self.buckets = {}
 
     def create_bucket(self, name):
-        if name in self.buckets:
-            raise BucketAlreadyExists
-        else:
-            bucket = Bucket(self, name)
-            self.buckets[name] = bucket
-            return bucket
+        bucket = Bucket(self, name)
+        self.buckets[name] = bucket
+        return bucket
 
     def get_bucket(self, name):
         bucket = self.buckets.get(name)

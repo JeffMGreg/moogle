@@ -8,35 +8,33 @@ from jinja2 import Template
 from .models import gcs_backend
 from .errors import *
 
+# https://www.googleapis.com/
+# storage/v1beta2/b/<bucket>/o/<object>
+# ?project=mock_project&alt=json
 BASE_RE = re.compile("(?:/upload)?/storage/v1beta2/b/?(?P<bucket>[0-9a-zA-Z_-]+)?(?:/o/?(?P<object>[0-9a-zA-Z_-]+)?)?\?.+")
 
-class Response(object):
+def response(request, _, headers):
+    try:
+        groups = BASE_RE.match(request.path).groupdict()
+        bucket = groups["bucket"]
+        object = groups["object"]
 
-    def __init__(self, backend):
-        self.backend = backend
-
-    def response(self, request, full_url, headers):
-        try:
-            groups = BASE_RE.match(request.path).groupdict()
-            bucket = groups["bucket"]
-            object = groups["object"]
-
-            if object or request.path.split("?")[0][-2:] == "/o":
-                key = gcs_object.response(request, headers, bucket)
-                if isinstance(key, ObjectNotFound):
-                    return key.response
-                else:
-                    return key
+        if object or request.path.split("?")[0][-2:] == "/o":
+            key = gcs_object.response(request, headers, bucket)
+            if isinstance(key, ObjectNotFound):
+                return key.response
             else:
-                bucket = gcs_bucket.response(request, headers)
-                return bucket
-        except Exception, e:
-            try:
-                if not e.__module__.startswith("moogle"):
-                    raise e
-                return 404, headers, e.response
-            except:
-                raise e
+                return key
+        else:
+            bucket = gcs_bucket.response(request, headers)
+            return bucket
+    except Exception, error:
+        try:
+            if not error.__module__.startswith("moogle"):
+                raise error
+            return 404, headers, error.response
+        except:
+            raise error
 
 
 class Object(object):
@@ -45,27 +43,27 @@ class Object(object):
 
     def response(self, request, headers, bucket):
         if request.method == "POST":
-            response = self._post(request, bucket=bucket)
+            res = self._post(request, bucket=bucket)
         if request.method == "GET":
-            response = self._get(request, bucket=bucket)
+            res = self._get(request, bucket=bucket)
 
-        if isinstance(response, basestring):
-            return 200, headers, response
+        if isinstance(res, basestring):
+            return 200, headers, res
         else:
-            status_code, headers, response_content = response
+            status_code, headers, response_content = res
             return status_code, headers, response_content
 
     def _post(self, request, bucket):
         key = self.backend.post_object(bucket, request.querystring["name"][0], request.body)
-        response = Template(OBJECT_INSERT_RESPONSE)
-        return json.dumps(response.render(key=key))
+        res = Template(OBJECT_INSERT_RESPONSE)
+        return json.dumps(res.render(key=key))
 
     def _get(self, request, bucket):
         object_name = request.path[request.path.find("/o/") + 3: request.path.find("?")]
         key = self.backend.get_object(bucket, object_name)
         if "json" in request.querystring["alt"]:
-            response = Template(OBJECT_GET_RESPONSE)
-            return json.dumps(response.render(key=key))
+            res = Template(OBJECT_GET_RESPONSE)
+            return json.dumps(res.render(key=key))
         else:
             return key.media
 
@@ -78,16 +76,16 @@ class Bucket(object):
 
         if request.method == "POST":
             bucket = json.loads(request.body)["name"]
-            response = self._post(request, bucket_name=bucket)
+            res = self._post(request, bucket_name=bucket)
         elif request.method in ["PATCH", "PUT", "DELETE", "GET"]:
             raise Exception("%s is not implemented for %s" % (request.method, request.path))
         else:
             raise ValueError
 
-        if isinstance(response, basestring):
-            return 200, headers, response
+        if isinstance(res, basestring):
+            return 200, headers, res
         else:
-            status_code, headers, response_content = response
+            status_code, headers, response_content = res
             return status_code, headers, response_content
 
     def _post(self, request, bucket_name):
@@ -96,15 +94,15 @@ class Bucket(object):
             visible = request.querystring.get("fields", None)
             if not visible:
                 visible = bucket.visible_fields
-            response = Template(BUCKET_INSERT_RESPONSE)
-            return json.dumps(response.render(bucket=bucket, visible_fields=visible))
+            res = Template(BUCKET_INSERT_RESPONSE)
+            return json.dumps(res.render(bucket=bucket, visible_fields=visible))
         except BucketAlreadyExists, error:
             return error.response
 
-        response = Template(BUCKET_INSERT_RESPONSE)
-        return json.dumps(response.render(bucket=bucket))
+        res = Template(BUCKET_INSERT_RESPONSE)
+        return json.dumps(res.render(bucket=bucket))
 
-BaseResponse = Response(gcs_backend)
+
 gcs_bucket = Bucket(gcs_backend)
 gcs_object = Object(gcs_backend)
 

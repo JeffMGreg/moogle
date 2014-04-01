@@ -11,8 +11,6 @@ mock.start()
 
 email = "moogle@google.com"
 scope = "https://www.googleapis.com/auth/devstorage.full_control"
-
-
 f = file("/home/jeff/Git/gcs_dev/key.p12", "rb")
 key = f.read()
 f.close()
